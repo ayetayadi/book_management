@@ -1,13 +1,7 @@
-// models/Book.js
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
-// Define a schema with different types of fields
 const bookSchema = new mongoose.Schema({
   title: {
-    type: String,
-    required: true,
-  },
-  author: {
     type: String,
     required: true,
   },
@@ -15,31 +9,33 @@ const bookSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  genre: {
-    type: String,
-  },
-  isBestseller: {
-    type: Boolean,
-    default: false,
-  },
-  ratings: {
-    type: [Number],
-  },
-  additionalInfo: {
-    pages: {
-      type: Number,
-    },
-    publisher: {
-      type: String,
-    },
-  },
-  tags: {
-    type: [String],
-  },
   createdAt: {
     type: Date,
     default: Date.now,
   },
+  author: {
+    type: Schema.Types.ObjectId,
+    ref: "Author",
+  },
+  categories: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "Category",
+    },
+  ],
 });
+
+bookSchema.pre("save", async function (next) {
+  const Category = mongoose.model("Category");
+  const categoriesExist = await Category.find({
+    _id: { $in: this.categories },
+  });
+
+  if (categoriesExist.length !== this.categories.length) {
+    return next(new Error("Une ou plusieurs catégories sont invalides."));
+  }
+  next();
+});
+
 
 export default mongoose.model("Book", bookSchema);
